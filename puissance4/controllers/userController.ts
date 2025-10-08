@@ -130,7 +130,7 @@ class UserController extends Controller {
 
             // Générer un JWT
             const token = jwt.sign(
-                { id: user._id, name: user.name, email: user.email },
+                { id: user._id, name: user.name, email: user.email, roles: user.roles },
                 process.env.JWT_SECRET || '',
                 { expiresIn: '1h' }
             );

@@ -41,27 +41,40 @@ class RoomController extends Controller {
         }
     }
 
+    async getByName(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { name } = req.params;
+            if (!name) return next(new BadRequest('Name is required'));
+            const room = await this.service.getByName(name);
+            if (!room) return next(new NotFound('Room not found'));
+            res.json(room);
+        }
+        catch (e) {
+            next(e);
+        }
+    }
+    
+
     // 📍 CREATE room
     async add(req: Request, res: Response, next: NextFunction) {
         try {
-            const { name, email, password, roles } = req.body;
+            const { name, password } = req.body;
 
-            if (!name || !email || !password) {
-                return next(new BadRequest('Name, email and password are required'));
+            if (!name || !password) {
+                return next(new BadRequest('Name and password are required'));
             }
 
-            // vérifier si l'email est déjà utilisé
+            // vérifier si le nom est déjà utilisé
             const existing = await this.service.getByName(name);
             if (existing) {
                 return next(new BadRequest('Name already exists'));
             }
 
-            const hashedPassword = await bcrypt.hash(password, 10);
+            const roomPassword =  await bcrypt.hash(password, 10);
+    
             const created = await this.service.add({
                 name,
-                email,
-                password: hashedPassword,
-                roles: roles
+                password: roomPassword
             });
 
             res.status(201).json(created);
@@ -70,22 +83,20 @@ class RoomController extends Controller {
         }
     }
 
-    // 📍 UPDATE user
+    // 📍 UPDATE room
     async update(req: Request, res: Response, next: NextFunction) {
         try {
             const { id } = req.params;
             if (!id) return next(new BadRequest('ID is required'));
 
-            const { name, email, password, roles } = req.body;
+            const { name, password } = req.body;
 
             const patch: any = {};
             if (name) patch.name = name;
-            if (email) patch.email = email;
-            if (password) patch.password = await bcrypt.hash(password, 10);
-            if (roles) patch.roles = roles;
+            if (password) patch.password = password;
 
             const updated = await this.service.update(id, patch);
-            if (!updated) return next(new NotFound('User not found'));
+            if (!updated) return next(new NotFound('Room not found'));
 
             res.json(updated);
         } catch (e) {
@@ -100,7 +111,7 @@ class RoomController extends Controller {
             if (!id) return next(new BadRequest('ID is required'));
 
             const deleted = await this.service.delete(id);
-            if (!deleted) return next(new NotFound('User not found'));
+            if (!deleted) return next(new NotFound('Room not found'));
 
             res.json(deleted);
         } catch (e) {
@@ -108,7 +119,7 @@ class RoomController extends Controller {
         }
     }
 
-    // 📍 LOGIN (returns JWT)
+    // 📍 LOGIN 
     async login(req: Request, res: Response, next: NextFunction) {
         try {
             const { name, password } = req.body;
@@ -116,33 +127,23 @@ class RoomController extends Controller {
                 return next(new BadRequest('Name and password are required'));
             }
 
-            // Recherche par email
-            const user = await this.service.getByName(name);
-            if (!user) {
+            // Recherche par nom
+            const room = await this.service.getByName(name);
+            if (!room) {
                 return next(new Unauthorized('Invalid name or password'));
             }
 
             // Vérification du mot de passe
-            const isPasswordValid = await bcrypt.compare(password, user.password);
+            const isPasswordValid = await bcrypt.compare(password, room.password);
             if (!isPasswordValid) {
                 return next(new Unauthorized('Invalid name or password'));
             }
 
-            // Générer un JWT
-            const token = jwt.sign(
-                { id: user._id, name: user.name, email: user.email },
-                process.env.JWT_SECRET || '',
-                { expiresIn: '1h' }
-            );
-
             return res.json({
-                message: 'Login successful',
-                token,
-                user: {
-                    id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    roles: user.roles
+                message: 'Connected successfully to the room',
+                room: {
+                    id: room._id,
+                    name: room.name,
                 }
             });
         } catch (e) {
