@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 import { IUser } from "./users.js";
 
 export interface IRoom extends Document {
+    _id: Schema.Types.ObjectId
     name: string;
     password: string;
     player1?: Schema.Types.ObjectId;

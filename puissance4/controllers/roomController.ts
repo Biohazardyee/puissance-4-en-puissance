@@ -2,9 +2,11 @@ import type { Request, Response, NextFunction } from 'express';
 import { Controller } from './controller.js';
 import { Unauthorized, BadRequest, NotFound } from '../utils/errors.js';
 import roomService from '../services/roomService.js';
+import { tokenRetrieval } from '../middlewares/tokenRetrievalMiddleware.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from "dotenv";
+import { Schema, Types } from 'mongoose';
 
 dotenv.config();
 
@@ -77,6 +79,12 @@ class RoomController extends Controller {
                 password: roomPassword
             });
 
+            if (!req.user) {
+                return next(new Unauthorized('User not authenticated'));
+            }
+
+            this.service.update((created._id.toString()), { player1: new Schema.Types.ObjectId(req.user.id)});
+
             res.status(201).json(created);
         } catch (e) {
             next(e);
@@ -120,7 +128,7 @@ class RoomController extends Controller {
     }
 
     // 📍 LOGIN 
-    async login(req: Request, res: Response, next: NextFunction) {
+    async join(req: Request, res: Response, next: NextFunction) {
         try {
             const { name, password } = req.body;
             if (!name || !password) {
@@ -129,6 +137,7 @@ class RoomController extends Controller {
 
             // Recherche par nom
             const room = await this.service.getByName(name);
+
             if (!room) {
                 return next(new Unauthorized('Invalid name or password'));
             }
@@ -139,6 +148,12 @@ class RoomController extends Controller {
                 return next(new Unauthorized('Invalid name or password'));
             }
 
+            if (!req.user) {
+                return next(new Unauthorized('User not authenticated'));
+            }
+
+            this.service.update((room._id.toString()), { player2: new Schema.Types.ObjectId(req.user.id) });
+            
             return res.json({
                 message: 'Connected successfully to the room',
                 room: {

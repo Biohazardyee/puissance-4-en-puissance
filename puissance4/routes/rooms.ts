@@ -12,6 +12,8 @@ router.get('/:id', authGuard, (req, res, next) => roomController.getById(req, re
 
 router.get('/name/:name', authGuard, (req, res, next) => roomController.getByName(req, res, next));
 
+router.post('/join', authGuard, (req, res, next) => roomController.join(req, res, next));
+
 router.put('/:id', authGuard, (req, res, next) => roomController.update(req, res, next));
 
 router.delete('/:id', authGuard,  (req, res, next) => roomController.delete(req, res, next));
